@@ -4,6 +4,7 @@ import (
 	"context"
 	"github.com/jackc/pgconn"
 	"github.com/jackc/pgx/v4"
+	"sync"
 )
 
 type Queryer interface {
@@ -17,7 +18,7 @@ type Queryer interface {
 
 type Storage struct {
 	db    Queryer
-	cache map[int]string
+	cache sync.Map
 }
 
 func NewStorage(conn Queryer) *Storage {
