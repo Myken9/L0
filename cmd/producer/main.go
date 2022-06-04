@@ -1,7 +1,7 @@
 package main
 
 import (
-	"L0/pkg"
+	"L0/pkg/model"
 	"encoding/json"
 	"github.com/brianvoe/gofakeit/v6"
 	"github.com/nats-io/stan.go"
@@ -33,7 +33,7 @@ func main() {
 }
 
 func genOrder() []byte {
-	order := pkg.Order{
+	order := model.Order{
 		OrderUid:          gofakeit.UUID(),
 		TrackNumber:       gofakeit.UUID(),
 		Entry:             gofakeit.UUID(),
@@ -46,7 +46,7 @@ func genOrder() []byte {
 		OofShard:          gofakeit.UUID(),
 		DateCreated:       gofakeit.Date(),
 
-		Items: []pkg.Item{
+		Items: []model.Item{
 			{
 				ChrtId:      gofakeit.IntRange(1, 10000),
 				TrackNumber: gofakeit.UUID(),
@@ -61,7 +61,7 @@ func genOrder() []byte {
 				Status:      0,
 			},
 		},
-		Delivery: pkg.Delivery{
+		Delivery: model.Delivery{
 			Name:    gofakeit.StreetName(),
 			Phone:   gofakeit.Phone(),
 			Zip:     gofakeit.Zip(),
@@ -70,7 +70,7 @@ func genOrder() []byte {
 			Region:  "",
 			Email:   gofakeit.Email(),
 		},
-		Payment: pkg.Payment{
+		Payment: model.Payment{
 			Transaction:  gofakeit.UUID(),
 			RequestId:    "",
 			Currency:     "",

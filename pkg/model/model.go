@@ -1,8 +1,9 @@
-package pkg
+package model
 
 import "time"
 
 type Order struct {
+	Id                int
 	OrderUid          string `json:"order_uid"`
 	TrackNumber       string `json:"track_number"`
 	Entry             string `json:"entry"`
