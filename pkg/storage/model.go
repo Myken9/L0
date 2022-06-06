@@ -1,7 +1,7 @@
 package storage
 
 type Order struct {
-	ID      int    `db:"id"`
-	OrderID string `db:"order_id"`
-	Data    []byte `db:"order_data"`
+	ID       int    `db:"id"`
+	OrderNum string `db:"order_num"`
+	Data     []byte `db:"order_data"`
 }

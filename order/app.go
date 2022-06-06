@@ -1,38 +1,32 @@
 package order
 
 import (
-	storage2 "L0/pkg/storage"
+	"L0/pkg/storage"
 	"context"
+	"encoding/json"
 	"fmt"
 	"github.com/julienschmidt/httprouter"
 	"github.com/nats-io/stan.go"
 	"log"
 	"net/http"
-	"strconv"
 )
 
 type Application struct {
-	st *storage2.Storage
+	st *storage.Storage
 }
 
-func NewApplication(st *storage2.Storage) *Application {
+func NewApplication(st *storage.Storage) *Application {
 	return &Application{st: st}
 }
 
 func (a *Application) ByIDHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-	param := ps.ByName("id")
-	id, err := strconv.Atoi(param)
-	if err != nil {
-		log.Print(err)
-		response400(w)
-		return
-	}
-	if id <= 0 {
+	orderNum := ps.ByName("orderNum")
+	if orderNum == "" {
 		response400(w)
 		return
 	}
 
-	order, err := a.st.OrderByID(id)
+	order, err := a.st.Order(orderNum)
 	if err != nil {
 		log.Println(err)
 		orderNotFound(w)
@@ -41,9 +35,23 @@ func (a *Application) ByIDHandler(w http.ResponseWriter, r *http.Request, ps htt
 	fmt.Fprint(w, string(order))
 }
 
+type natsMessage struct {
+	OrderNum string `json:"order_uid"`
+}
+
 func (a *Application) Consume(m *stan.Msg) {
-	order := &storage2.Order{}
+	var msg natsMessage
+
+	// Check if message has field "order_uid"
+	if err := json.Unmarshal(m.Data, &msg); err != nil {
+		log.Println(err)
+		return
+	}
+
+	order := &storage.Order{}
 	order.Data = m.Data
+	order.OrderNum = msg.OrderNum
+
 	if err := a.st.AddOrder(context.Background(), order); err != nil {
 		log.Println(err)
 	}

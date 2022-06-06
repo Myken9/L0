@@ -59,6 +59,6 @@ func main() {
 
 func configureRouter(app *order.Application) *httprouter.Router {
 	router := httprouter.New()
-	router.GET("/orders/:id", app.ByIDHandler)
+	router.GET("/orders/:orderNum", app.ByIDHandler)
 	return router
 }

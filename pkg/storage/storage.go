@@ -2,7 +2,6 @@ package storage
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"log"
@@ -28,36 +27,29 @@ func (s *Storage) UploadCache(ctx context.Context) error {
 	var orders []Order
 	for rows.Next() {
 		var order Order
-		err := rows.Scan(&order.ID, &order.Data)
+		err := rows.Scan(&order.ID, &order.OrderNum, &order.Data)
 		if err != nil {
 			log.Fatal(err)
 		}
 		orders = append(orders, order)
-		s.m.Store(order.ID, order.Data)
+		s.m.Store(order.OrderNum, order.Data)
 	}
 
 	return nil
 }
 
 func (s *Storage) AddOrder(ctx context.Context, order *Order) error {
-	data, err := json.Marshal(order)
-	if err != nil {
-		return fmt.Errorf("error marshalling order: %w", err)
-	}
-
-	err = s.db.QueryRow(ctx, `INSERT INTO orders (order_data) VALUES ($1) RETURNING id`, data).
-		Scan(&order.ID)
-
-	if err != nil {
+	q := "INSERT INTO orders (order_num, order_data) VALUES ($1, $2) RETURNING id"
+	if err := s.db.QueryRow(ctx, q, order.OrderNum, order.Data).Scan(&order.ID); err != nil {
 		return fmt.Errorf("error adding order: %w", err)
 	}
 
-	s.m.Store(order.ID, data)
+	s.m.Store(order.OrderNum, order.Data)
 
 	return nil
 }
-func (s *Storage) OrderByID(id int) ([]byte, error) {
-	val, ok := s.m.Load(id)
+func (s *Storage) Order(orderNum string) ([]byte, error) {
+	val, ok := s.m.Load(orderNum)
 	if ok == false {
 		log.Println("order not found in cache")
 		return nil, errors.New("order not found")

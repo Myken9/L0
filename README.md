@@ -9,6 +9,7 @@ cp .env.dist .env
 CREATE TABLE orders
 (
     id BIGSERIAL PRIMARY KEY,
+    order_num VARCHAR(255) NOT NULL UNIQUE,
     order_data jsonb NOT NULL
 );
 ```
