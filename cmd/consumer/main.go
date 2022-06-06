@@ -1,12 +1,13 @@
 package main
 
 import (
-	"L0/application"
-	"L0/storage"
+	"L0/order"
+	"L0/pkg/storage"
 	"context"
 	"fmt"
 	"github.com/jackc/pgx/v4"
 	"github.com/joho/godotenv"
+	"github.com/julienschmidt/httprouter"
 	"github.com/nats-io/stan.go"
 	"log"
 	"net/http"
@@ -30,15 +31,15 @@ func main() {
 	}
 	defer conn.Close(context.Background())
 
-	stor := storage.NewStorage(conn)
-	if err := stor.UploadCache(context.Background()); err != nil {
+	store := storage.NewStorage(conn)
+	if err := store.UploadCache(context.Background()); err != nil {
 		log.Println("error uploading cache from db", err)
 	}
-	app := application.NewApplication(stor)
+	app := order.NewApplication(store)
 
 	st, err := stan.Connect(
 		"test-cluster",
-		"1", stan.NatsURL("nats://localhost:4222"),
+		"order-consumer", stan.NatsURL(os.Getenv("NATS_STREAMING_URL")),
 	)
 
 	if err != nil {
@@ -46,21 +47,18 @@ func main() {
 	}
 	defer st.Close()
 
-	_, err = st.Subscribe("order", app.SubscribeToOrders, stan.DurableName("orders"))
-	if err != nil {
-		log.Println(err)
-
+	if _, err = st.Subscribe("orders", app.Consume, stan.StartWithLastReceived()); err != nil {
 		return
 	}
 
-	msgHandler := msg("Hello")
-	http.HandleFunc("/", app.InputOrderIDHandler)
 	fmt.Println("Server is listening...")
-	http.ListenAndServe("localhost:8181", msgHandler)
+	if err := http.ListenAndServe(os.Getenv("HTTP_ADDR"), configureRouter(app)); err != nil {
+		log.Fatal(err)
+	}
 }
 
-type msg string
-
-func (m msg) ServeHTTP(resp http.ResponseWriter, req *http.Request) {
-	fmt.Fprint(resp, m)
+func configureRouter(app *order.Application) *httprouter.Router {
+	router := httprouter.New()
+	router.GET("/orders/:id", app.ByIDHandler)
+	return router
 }
